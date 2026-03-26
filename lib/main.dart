@@ -12,10 +12,12 @@ import 'screens/performance_tracking_screen.dart';
 import 'screens/profile_settings_screen.dart';
 import 'screens/weekly_plan_screen.dart';
 import 'screens/workout_detail_screen.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+  await NotificationService().init();
   
   runApp(
     MultiProvider(

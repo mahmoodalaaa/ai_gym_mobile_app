@@ -6,6 +6,7 @@ class CustomTextInput extends StatelessWidget {
   final bool obscureText;
   final TextEditingController? controller;
   final IconData? prefixIcon;
+  final ValueChanged<String>? onChanged;
 
   const CustomTextInput({
     super.key,
@@ -14,6 +15,7 @@ class CustomTextInput extends StatelessWidget {
     this.obscureText = false,
     this.controller,
     this.prefixIcon,
+    this.onChanged,
   });
 
   @override
@@ -31,13 +33,14 @@ class CustomTextInput extends StatelessWidget {
         TextField(
           controller: controller,
           obscureText: obscureText,
+          onChanged: onChanged,
           style: Theme.of(context).textTheme.bodyLarge,
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: Theme.of(
                 context,
-              ).colorScheme.onSurfaceVariant.withOpacity(0.5),
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
             ),
             filled: true,
             fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -51,7 +54,7 @@ class CustomTextInput extends StatelessWidget {
               borderSide: BorderSide(
                 color: Theme.of(
                   context,
-                ).colorScheme.outlineVariant.withOpacity(0.15),
+                ).colorScheme.outlineVariant.withValues(alpha: 0.15),
                 width: 1,
               ),
             ),
@@ -59,7 +62,7 @@ class CustomTextInput extends StatelessWidget {
               borderSide: BorderSide(
                 color: Theme.of(
                   context,
-                ).colorScheme.outlineVariant.withOpacity(0.15),
+                ).colorScheme.outlineVariant.withValues(alpha: 0.15),
                 width: 1,
               ),
             ),
