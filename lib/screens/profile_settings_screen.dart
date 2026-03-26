@@ -9,75 +9,83 @@ class ProfileSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: false,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
-        children: [
-          _buildProfileHeader(context),
-          const SizedBox(height: 40),
-          _buildSectionTitle(context, 'ACCOUNT'),
-          const SizedBox(height: 16),
-          const CustomTextInput(
-            label: 'FULL NAME',
-            hintText: 'John Doe',
-            prefixIcon: Icons.person_outline,
-          ),
-          const SizedBox(height: 24),
-          const CustomTextInput(
-            label: 'EMAIL',
-            hintText: 'john@example.com',
-            prefixIcon: Icons.email_outlined,
-          ),
-          const SizedBox(height: 48),
+    return FutureBuilder<Credentials>(
+      future: Auth0(dotenv.env['AUTH0_DOMAIN']!, dotenv.env['AUTH0_CLIENT_ID']!).credentialsManager.credentials(),
+      builder: (context, snapshot) {
+        final user = snapshot.data?.user;
+        final name = user?.name ?? 'Loading...';
+        final email = user?.email ?? 'Loading...';
+        final pictureUrl = user?.pictureUrl?.toString() ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80';
 
-          _buildSectionTitle(context, 'PREFERENCES'),
-          const SizedBox(height: 16),
-          _buildSettingsTile(context, 'Units', 'kg / cm'),
-          _buildSettingsTile(context, 'Theme', 'GYM AI Dark'),
-          _buildSettingsTile(context, 'Notifications', 'Enabled'),
-          const SizedBox(height: 48),
-
-          PrimaryButton(
-            text: 'LOG OUT',
-            isSecondary: true,
-            onPressed: () async {
-              try {
-                final auth0 = Auth0(dotenv.env['AUTH0_DOMAIN']!, dotenv.env['AUTH0_CLIENT_ID']!);
-                await auth0.webAuthentication(scheme: 'aigym').logout();
-                await auth0.credentialsManager.clearCredentials();
-                if (context.mounted) {
-                  Navigator.of(context, rootNavigator: true).pushReplacementNamed('/');
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Logout failed: $e')),
-                  );
-                }
-              }
-            },
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Settings'),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: false,
           ),
-          const SizedBox(height: 40),
-        ],
-      ),
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
+            children: [
+              _buildProfileHeader(context, name, pictureUrl),
+              const SizedBox(height: 40),
+              _buildSectionTitle(context, 'ACCOUNT'),
+              const SizedBox(height: 16),
+              CustomTextInput(
+                label: 'FULL NAME',
+                hintText: name,
+                prefixIcon: Icons.person_outline,
+              ),
+              const SizedBox(height: 24),
+              CustomTextInput(
+                label: 'EMAIL',
+                hintText: email,
+                prefixIcon: Icons.email_outlined,
+              ),
+              const SizedBox(height: 48),
+
+              _buildSectionTitle(context, 'PREFERENCES'),
+              const SizedBox(height: 16),
+              _buildSettingsTile(context, 'Units', 'kg / cm'),
+              _buildSettingsTile(context, 'Theme', 'GYM AI Dark'),
+              _buildSettingsTile(context, 'Notifications', 'Enabled'),
+              const SizedBox(height: 48),
+
+              PrimaryButton(
+                text: 'LOG OUT',
+                isSecondary: true,
+                onPressed: () async {
+                  try {
+                    final auth0 = Auth0(dotenv.env['AUTH0_DOMAIN']!, dotenv.env['AUTH0_CLIENT_ID']!);
+                    await auth0.webAuthentication(scheme: 'aigym').logout();
+                    await auth0.credentialsManager.clearCredentials();
+                    if (context.mounted) {
+                      Navigator.of(context, rootNavigator: true).pushReplacementNamed('/');
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Logout failed: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        );
+      }
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context) {
+  Widget _buildProfileHeader(BuildContext context, String name, String pictureUrl) {
     return Row(
       children: [
         CircleAvatar(
           radius: 40,
           backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-          backgroundImage: const NetworkImage(
-            'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
-          ),
+          backgroundImage: NetworkImage(pictureUrl),
         ),
         const SizedBox(width: 24),
         Expanded(
@@ -85,7 +93,7 @@ class ProfileSettingsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'John Doe',
+                name,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 4),

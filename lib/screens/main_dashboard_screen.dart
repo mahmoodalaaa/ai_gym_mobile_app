@@ -6,6 +6,8 @@ import 'ai_coach_screen.dart';
 import 'profile_settings_screen.dart';
 import 'workout_detail_screen.dart';
 import 'weekly_plan_screen.dart';
+import 'package:auth0_flutter/auth0_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class MainDashboardScreen extends StatefulWidget {
   const MainDashboardScreen({super.key});
@@ -91,12 +93,21 @@ class _HomeContent extends StatelessWidget {
             ),
           ],
         ),
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-          backgroundImage: const NetworkImage(
-            'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-          ),
+        FutureBuilder<Credentials>(
+          future: Auth0(dotenv.env['AUTH0_DOMAIN']!, dotenv.env['AUTH0_CLIENT_ID']!).credentialsManager.credentials(),
+          builder: (context, snapshot) {
+            String? imageUrl;
+            if (snapshot.hasData && snapshot.data?.user.pictureUrl != null) {
+              imageUrl = snapshot.data!.user.pictureUrl.toString();
+            }
+            return CircleAvatar(
+              radius: 24,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+              backgroundImage: imageUrl != null 
+                  ? NetworkImage(imageUrl) 
+                  : const NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'),
+            );
+          },
         ),
       ],
     );
