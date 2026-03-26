@@ -17,10 +17,12 @@ class PrimaryButton extends StatelessWidget {
     if (isSecondary) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(
-            context,
-          ).colorScheme.surfaceVariant.withOpacity(0.2),
+          backgroundColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.35),
           foregroundColor: Theme.of(context).colorScheme.onSurface,
+          side: BorderSide(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+            width: 1.0,
+          ),
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
@@ -28,7 +30,10 @@ class PrimaryButton extends StatelessWidget {
           elevation: 0,
         ),
         onPressed: onPressed,
-        child: Text(text),
+        child: Text(
+          text,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
       );
     }
 

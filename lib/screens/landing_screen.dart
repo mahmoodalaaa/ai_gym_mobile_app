@@ -80,7 +80,7 @@ class _LandingScreenState extends State<LandingScreen> {
         children: [
           // Background Image
           Image.network(
-            'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=2069&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?q=80&w=2070&auto=format&fit=crop',
             fit: BoxFit.cover,
             color: Colors.black.withValues(alpha: 0.6),
             colorBlendMode: BlendMode.darken,
@@ -100,7 +100,7 @@ class _LandingScreenState extends State<LandingScreen> {
                   const SizedBox(height: 48),
                   // App Title / Logo
                   Text(
-                    'KINETIX',
+                    'GYM AI',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: Theme.of(context).colorScheme.primaryContainer,
                           letterSpacing: 4,
