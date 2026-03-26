@@ -14,7 +14,7 @@ class LandingScreen extends StatefulWidget {
 
 class _LandingScreenState extends State<LandingScreen> {
   late Auth0 auth0;
-  bool _isLoading = false;
+  bool _isLoading = true; // Wait for initial credential check!
 
   @override
   void initState() {
@@ -26,12 +26,25 @@ class _LandingScreenState extends State<LandingScreen> {
   Future<void> _checkSavedTokens() async {
     try {
       if (await auth0.credentialsManager.hasValidCredentials()) {
+        final credentials = await auth0.credentialsManager.credentials(); // Ensure it actually fetches/refreshes
+        
+        // Optional Backend Sync:
+        final String host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
+        final uri = Uri.parse('http://$host:8080/api/user/me');
+        await http.get(uri, headers: {'Authorization': 'Bearer ${credentials.accessToken}'});
+
         if (mounted) {
            Navigator.pushReplacementNamed(context, '/dashboard');
+           return;
         }
       }
     } catch (e) {
-      // Ignore
+      // Ignore or log error
+      debugPrint('Auth Check Error: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
