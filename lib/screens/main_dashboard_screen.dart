@@ -72,6 +72,10 @@ class _HomeContent extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final now = DateTime.now();
+    const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+    final formattedDate = '${days[now.weekday - 1]}, ${now.day}';
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -80,7 +84,7 @@ class _HomeContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'THURSDAY, 24',
+              formattedDate,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: Theme.of(context).colorScheme.primary,
                     letterSpacing: 2,
