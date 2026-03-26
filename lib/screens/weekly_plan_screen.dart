@@ -102,9 +102,15 @@ class WeeklyPlanScreen extends StatelessWidget {
     bool isRest = false,
     String? imageUrl,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return GestureDetector(
+      onTap: () {
+        if (!isRest) {
+          Navigator.pushNamed(context, '/workout_detail');
+        }
+      },
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
         // Date part
         SizedBox(
           width: 60,
@@ -230,7 +236,8 @@ class WeeklyPlanScreen extends StatelessWidget {
                   ),
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 }

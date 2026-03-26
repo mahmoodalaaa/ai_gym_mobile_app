@@ -39,7 +39,7 @@ class ProfileSettingsScreen extends StatelessWidget {
           _buildSectionTitle(context, 'PREFERENCES'),
           const SizedBox(height: 16),
           _buildSettingsTile(context, 'Units', 'kg / cm'),
-          _buildSettingsTile(context, 'Theme', 'Kinetix Dark'),
+          _buildSettingsTile(context, 'Theme', 'GYM AI Dark'),
           _buildSettingsTile(context, 'Notifications', 'Enabled'),
           const SizedBox(height: 48),
 

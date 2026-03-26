@@ -7,11 +7,15 @@ class AiCoachScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kinetix AI'),
+        title: const Text('GYM AI'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'New Chat',
+            onPressed: () {},
+          ),
         ],
       ),
       body: Column(
@@ -70,7 +74,7 @@ class AiCoachScreen extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: 'Ask Kinetix anything...',
+                      hintText: 'Ask GYM AI anything...',
                       border: InputBorder.none,
                       hintStyle: Theme.of(context).textTheme.bodyLarge
                           ?.copyWith(

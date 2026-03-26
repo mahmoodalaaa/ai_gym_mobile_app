@@ -4,6 +4,14 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/landing_screen.dart';
 import 'screens/main_dashboard_screen.dart';
+import 'screens/active_workout_screen.dart';
+import 'screens/adjust_workout_plan_screen.dart';
+import 'screens/ai_coach_screen.dart';
+import 'screens/enhanced_workout_detail_screen.dart';
+import 'screens/performance_tracking_screen.dart';
+import 'screens/profile_settings_screen.dart';
+import 'screens/weekly_plan_screen.dart';
+import 'screens/workout_detail_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,14 +33,21 @@ class AiGymApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Kinetix Fitness',
+      title: 'GYM AI',
       theme: AppTheme.darkTheme,
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {
         '/': (context) => const LandingScreen(),
-        // We will implement dashboard shortly, mock it for now
         '/dashboard': (context) => const MainDashboardScreen(),
+        '/active_workout': (context) => const ActiveWorkoutScreen(),
+        '/adjust_workout': (context) => const AdjustWorkoutPlanScreen(),
+        '/ai_coach': (context) => const AiCoachScreen(),
+        '/enhanced_workout': (context) => const EnhancedWorkoutDetailScreen(),
+        '/performance': (context) => const PerformanceTrackingScreen(),
+        '/profile': (context) => const ProfileSettingsScreen(),
+        '/weekly_plan': (context) => const WeeklyPlanScreen(),
+        '/workout_detail': (context) => const WorkoutDetailScreen(),
       },
     );
   }
