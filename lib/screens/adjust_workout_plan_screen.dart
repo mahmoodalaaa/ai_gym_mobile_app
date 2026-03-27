@@ -8,118 +8,151 @@ class AdjustWorkoutPlanScreen extends StatefulWidget {
 }
 
 class _AdjustWorkoutPlanScreenState extends State<AdjustWorkoutPlanScreen> {
-  String _searchQuery = '';
+  String? _selectedMuscle;
   String? _selectedExercise;
 
-  // Mock list of all available exercises in the database
-  final List<String> _allExercises = [
-    'Barbell Row',
-    'Dumbbell Row',
-    'Machine Row',
-    'T-Bar Row',
-    'Seated Cable Row',
-    'Pendlay Row',
-    'Lat Pulldown',
-    'Pull-Up',
-    'Chin-Up',
-    'Barbell Curl',
-    'Dumbbell Curl',
-    'Hammer Curl',
-    'Preacher Curl',
-    'Cable Curl',
-    'Bench Press',
-    'Incline Dumbbell Press',
-    'Push-Up',
-    'Overhead Press',
-    'Lateral Raise',
-    'Back Squat',
-    'Leg Press',
-    'Romanian Deadlift',
-    'Leg Extension',
-    'Leg Curl',
-  ];
+  // Exercise library grouped by muscle
+  final Map<String, List<String>> _muscleExercises = {
+    'Back': [
+      'Barbell Row',
+      'Dumbbell Row',
+      'Machine Row',
+      'T-Bar Row',
+      'Seated Cable Row',
+      'Pendlay Row',
+      'Lat Pulldown',
+      'Pull-Up',
+      'Chin-Up',
+    ],
+    'Biceps': [
+      'Barbell Curl',
+      'Dumbbell Curl',
+      'Hammer Curl',
+      'Preacher Curl',
+      'Cable Curl',
+    ],
+    'Chest': [
+      'Bench Press',
+      'Incline Dumbbell Press',
+      'Push-Up',
+    ],
+    'Shoulders': [
+      'Overhead Press',
+      'Lateral Raise',
+    ],
+    'Legs': [
+      'Back Squat',
+      'Leg Press',
+      'Romanian Deadlift',
+      'Leg Extension',
+      'Leg Curl',
+    ],
+  };
 
   @override
   Widget build(BuildContext context) {
-    // Filter exercises based on search query
-    final filteredExercises = _allExercises.where((exercise) {
-      return exercise.toLowerCase().contains(_searchQuery);
-    }).toList();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Swap Exercise'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Column(
+      body: ListView(
+        padding: const EdgeInsets.all(24),
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: TextField(
-              onChanged: (value) {
-                setState(() => _searchQuery = value.toLowerCase());
-              },
-              decoration: InputDecoration(
-                hintText: 'Search for any exercise...',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
+          Text('Substitute', style: Theme.of(context).textTheme.displaySmall),
+          const SizedBox(height: 8),
+          Text(
+            'Choose a muscle group first, then select a new exercise to replace the current one.',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          const SizedBox(height: 32),
+
+          // Muscle Selection Section
+          Text(
+            'Target Muscle Group',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _muscleExercises.keys.map((muscle) {
+              final isSelected = _selectedMuscle == muscle;
+              return FilterChip(
+                label: Text(muscle),
+                selected: isSelected,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedMuscle = selected ? muscle : null;
+                    _selectedExercise = null; // Reset exercise choice
+                  });
+                },
+                selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                labelStyle: TextStyle(
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.onPrimaryContainer
+                      : Theme.of(context).colorScheme.onSurface,
+                ),
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 32),
+
+          // Exercise Selection Section
+          if (_selectedMuscle != null) ...[
+            Text(
+              'Select Exercise',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: _muscleExercises[_selectedMuscle!]!.map((exerciseName) {
+                  return RadioListTile<String>(
+                    value: exerciseName,
+                    groupValue: _selectedExercise,
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedExercise = val;
+                      });
+                    },
+                    title: Text(exerciseName),
+                    activeColor: Theme.of(context).colorScheme.primaryContainer,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                  );
+                }).toList(),
               ),
             ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                Text('Substitute', style: Theme.of(context).textTheme.displaySmall),
-                const SizedBox(height: 8),
-                Text(
-                  'Search and select a new exercise from our library to replace the current one.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+          ] else
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(48.0),
+                child: Text(
+                  'Select a muscle group to see exercises',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
                 ),
-                const SizedBox(height: 32),
-
-                Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: filteredExercises.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.all(24.0),
-                          child: Center(child: Text('No exercises found.')),
-                        )
-                      : Column(
-                          children: filteredExercises.map((exerciseName) {
-                            return RadioListTile<String>(
-                              value: exerciseName,
-                              groupValue: _selectedExercise,
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedExercise = val;
-                                });
-                              },
-                              title: Text(exerciseName),
-                              activeColor: Theme.of(context).colorScheme.primaryContainer,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 4,
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                ),
-              ],
+              ),
             ),
-          ),
         ],
       ),
       bottomNavigationBar: SafeArea(
