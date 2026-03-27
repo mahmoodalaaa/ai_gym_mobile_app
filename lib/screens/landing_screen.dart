@@ -92,57 +92,71 @@ class _LandingScreenState extends State<LandingScreen> {
           ),
           // Content
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 48),
-                  // App Title / Logo
-                  Text(
-                    'GYM AI',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          letterSpacing: 4,
-                          fontWeight: FontWeight.w800,
-                        ),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, 20 * (1 - value)),
+                    child: child,
                   ),
-                  const Spacer(),
-                  // Editorial Headline
-                  Text(
-                    'FORGE\nYOUR\nLEGACY.',
-                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          height: 1.1,
-                        ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'High-octane training for the focused athlete.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                  const SizedBox(height: 48),
-                  
-                  if (_isLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else ...[
-                    // Primary Action
-                    PrimaryButton(
-                      text: 'GET STARTED',
-                      onPressed: _login,
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 48),
+                    // App Title / Logo
+                    Text(
+                      'GYM AI',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            letterSpacing: 4,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const Spacer(),
+                    // Editorial Headline
+                    Text(
+                      'FORGE\nYOUR\nLEGACY.',
+                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            height: 1.1,
+                          ),
                     ),
                     const SizedBox(height: 16),
-                    // Secondary Action
-                    PrimaryButton(
-                      text: 'LOG IN',
-                      isSecondary: true,
-                      onPressed: _login,
+                    Text(
+                      'High-octane training for the focused athlete.',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                     ),
+                    const SizedBox(height: 48),
+                    
+                    if (_isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else ...[
+                      // Primary Action
+                      PrimaryButton(
+                        text: 'GET STARTED',
+                        onPressed: _login,
+                      ),
+                      const SizedBox(height: 16),
+                      // Secondary Action
+                      PrimaryButton(
+                        text: 'LOG IN',
+                        isSecondary: true,
+                        onPressed: _login,
+                      ),
+                    ],
+                    const SizedBox(height: 16),
                   ],
-                  const SizedBox(height: 16),
-                ],
+                ),
               ),
             ),
           ),

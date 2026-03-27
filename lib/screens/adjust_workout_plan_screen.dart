@@ -105,54 +105,75 @@ class _AdjustWorkoutPlanScreenState extends State<AdjustWorkoutPlanScreen> {
 
           const SizedBox(height: 32),
 
-          // Exercise Selection Section
-          if (_selectedMuscle != null) ...[
-            Text(
-              'Select Exercise',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: _muscleExercises[_selectedMuscle!]!.map((exerciseName) {
-                  return RadioListTile<String>(
-                    value: exerciseName,
-                    groupValue: _selectedExercise,
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedExercise = val;
-                      });
-                    },
-                    title: Text(exerciseName),
-                    activeColor: Theme.of(context).colorScheme.primaryContainer,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ] else
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(48.0),
-                child: Text(
-                  'Select a muscle group to see exercises',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontStyle: FontStyle.italic,
-                      ),
+          // Exercise Selection Section (Animated)
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 400),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.0, 0.05),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
                 ),
-              ),
-            ),
+              );
+            },
+            child: _selectedMuscle != null
+                ? Column(
+                    key: ValueKey<String>(_selectedMuscle!),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Select Exercise',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          children: _muscleExercises[_selectedMuscle!]!.map((exerciseName) {
+                            return RadioListTile<String>(
+                              value: exerciseName,
+                              groupValue: _selectedExercise,
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedExercise = val;
+                                });
+                              },
+                              title: Text(exerciseName),
+                              activeColor: Theme.of(context).colorScheme.primaryContainer,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 4,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  )
+                : Center(
+                    key: const ValueKey<String>('placeholder'),
+                    child: Padding(
+                      padding: const EdgeInsets.all(48.0),
+                      child: Text(
+                        'Select a muscle group to see exercises',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontStyle: FontStyle.italic,
+                            ),
+                      ),
+                    ),
+                  ),
+          ),
         ],
       ),
       bottomNavigationBar: SafeArea(

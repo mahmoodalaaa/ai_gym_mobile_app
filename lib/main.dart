@@ -35,23 +35,58 @@ class AiGymApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'GYM AI',
+      title: 'GymAI',
       theme: AppTheme.darkTheme,
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
-      routes: {
-        '/': (context) => const LandingScreen(),
-        '/dashboard': (context) => const MainDashboardScreen(),
-        '/active_workout': (context) => const ActiveWorkoutScreen(),
-        '/adjust_workout': (context) => const AdjustWorkoutPlanScreen(),
-        '/ai_coach': (context) => const AiCoachScreen(),
-        '/enhanced_workout': (context) => const EnhancedWorkoutDetailScreen(),
-        '/performance': (context) => const PerformanceTrackingScreen(),
-        '/profile': (context) => const ProfileSettingsScreen(),
-        '/weekly_plan': (context) => const WeeklyPlanScreen(),
-        '/workout_detail': (context) => const WorkoutDetailScreen(),
+      onGenerateRoute: (settings) {
+        final Map<String, WidgetBuilder> routes = {
+          '/': (context) => const LandingScreen(),
+          '/dashboard': (context) => const MainDashboardScreen(),
+          '/active_workout': (context) => const ActiveWorkoutScreen(),
+          '/adjust_workout': (context) => const AdjustWorkoutPlanScreen(),
+          '/ai_coach': (context) => const AiCoachScreen(),
+          '/enhanced_workout': (context) => const EnhancedWorkoutDetailScreen(),
+          '/performance': (context) => const PerformanceTrackingScreen(),
+          '/profile': (context) => const ProfileSettingsScreen(),
+          '/weekly_plan': (context) => const WeeklyPlanScreen(),
+          '/workout_detail': (context) => const WorkoutDetailScreen(),
+        };
+
+        WidgetBuilder? builder = routes[settings.name];
+        if (builder != null) {
+          return FadeScalePageRoute(
+            builder: builder,
+            settings: settings,
+          );
+        }
+        return null;
       },
     );
   }
+}
+
+class FadeScalePageRoute<T> extends PageRouteBuilder<T> {
+  final WidgetBuilder builder;
+
+  FadeScalePageRoute({required this.builder, super.settings})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => builder(context),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.98, end: 1.0).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
+                ),
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        );
 }
 

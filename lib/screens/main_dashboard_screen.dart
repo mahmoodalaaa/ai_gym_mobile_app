@@ -31,11 +31,8 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          IndexedStack(
-            index: _currentIndex,
-            children: _pages,
-          ),
-          
+          IndexedStack(index: _currentIndex, children: _pages),
+
           // Glassmorphic Bottom Nav
           BottomNavBar(
             currentIndex: _currentIndex,
@@ -73,7 +70,15 @@ class _HomeContent extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     final now = DateTime.now();
-    const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+    const days = [
+      'MONDAY',
+      'TUESDAY',
+      'WEDNESDAY',
+      'THURSDAY',
+      'FRIDAY',
+      'SATURDAY',
+      'SUNDAY',
+    ];
     final formattedDate = '${days[now.weekday - 1]}, ${now.day}';
 
     return Row(
@@ -86,19 +91,19 @@ class _HomeContent extends StatelessWidget {
             Text(
               formattedDate,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    letterSpacing: 2,
-                  ),
+                color: Theme.of(context).colorScheme.primary,
+                letterSpacing: 2,
+              ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Ready to pull?',
-              style: Theme.of(context).textTheme.displaySmall,
-            ),
+            Text('Let’s Go', style: Theme.of(context).textTheme.displaySmall),
           ],
         ),
         FutureBuilder<Credentials>(
-          future: Auth0(dotenv.env['AUTH0_DOMAIN']!, dotenv.env['AUTH0_CLIENT_ID']!).credentialsManager.credentials(),
+          future: Auth0(
+            dotenv.env['AUTH0_DOMAIN']!,
+            dotenv.env['AUTH0_CLIENT_ID']!,
+          ).credentialsManager.credentials(),
           builder: (context, snapshot) {
             String? imageUrl;
             if (snapshot.hasData && snapshot.data?.user.pictureUrl != null) {
@@ -106,10 +111,14 @@ class _HomeContent extends StatelessWidget {
             }
             return CircleAvatar(
               radius: 24,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-              backgroundImage: imageUrl != null 
-                  ? NetworkImage(imageUrl) 
-                  : const NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'),
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerLow,
+              backgroundImage: imageUrl != null
+                  ? NetworkImage(imageUrl)
+                  : const NetworkImage(
+                      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+                    ),
             );
           },
         ),
@@ -127,15 +136,18 @@ class _HomeContent extends StatelessWidget {
             Text(
               'TODAY\'S PROGRAM',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             TextButton(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const WeeklyPlanScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const WeeklyPlanScreen()),
+                );
               },
               child: Text(
-                'View Week', 
+                'View Week',
                 style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ),
@@ -168,22 +180,37 @@ class _HomeContent extends StatelessWidget {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.9),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primaryContainer
+                                .withValues(alpha: 0.9),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             'HYPERTROPHY',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimaryContainer,
                                 ),
                           ),
                         ),
                         const Spacer(),
-                        Icon(Icons.timer_outlined, color: Theme.of(context).colorScheme.onSurface),
+                        Icon(
+                          Icons.timer_outlined,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                         const SizedBox(width: 4),
-                        Text('60 MIN', style: Theme.of(context).textTheme.labelMedium),
+                        Text(
+                          '60 MIN',
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 60),
@@ -195,19 +222,29 @@ class _HomeContent extends StatelessWidget {
                     Text(
                       '6 movements • 24 sets',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutDetailScreen()));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const WorkoutDetailScreen(),
+                            ),
+                          );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
-                          foregroundColor: Theme.of(context).colorScheme.onSurface,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 0.8),
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurface,
                         ),
                         child: const Text('START WORKOUT'),
                       ),
@@ -229,8 +266,8 @@ class _HomeContent extends StatelessWidget {
         Text(
           'THIS WEEK',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 16),
         const Row(
