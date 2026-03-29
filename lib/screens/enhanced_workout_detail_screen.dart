@@ -9,27 +9,22 @@ class EnhancedWorkoutDetailScreen extends StatelessWidget {
       backgroundColor: Theme.of(context).colorScheme.background,
       body: Column(
         children: [
-          // Video Player Placeholder
-          Container(
-            height: MediaQuery.of(context).size.height * 0.4,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.black,
-              image: DecorationImage(
-                image: const NetworkImage(
-                  'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1000&auto=format&fit=crop',
-                ),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  Colors.black.withOpacity(0.3),
-                  BlendMode.darken,
+          // GIF Section with SafeArea
+          SafeArea(
+            bottom: false,
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.45,
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Colors.black,
+                image: DecorationImage(
+                  image: NetworkImage('https://bigyellow.site/gifs/1IG6gVF.gif'),
+                  fit: BoxFit.contain,
                 ),
               ),
-            ),
-            child: Stack(
-              children: [
-                SafeArea(
-                  child: Padding(
+              child: Stack(
+                children: [
+                  Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back),
@@ -40,52 +35,8 @@ class EnhancedWorkoutDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                ),
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 40,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  right: 16,
-                  child: Row(
-                    children: [
-                      Text(
-                        '0:00',
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: LinearProgressIndicator(
-                          value: 0.3,
-                          backgroundColor: Colors.white30,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Theme.of(context).colorScheme.primaryContainer,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '1:45',
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.fullscreen),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
@@ -94,17 +45,13 @@ class EnhancedWorkoutDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Text(
                       'C1',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         color: Theme.of(context).colorScheme.primary,
                       ),
-                    ),
-                    Icon(
-                      Icons.bookmark_border,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ],
                 ),
