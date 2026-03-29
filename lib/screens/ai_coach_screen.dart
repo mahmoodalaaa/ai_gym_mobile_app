@@ -1,7 +1,103 @@
 import 'package:flutter/material.dart';
+import '../services/chat_service.dart';
 
-class AiCoachScreen extends StatelessWidget {
+class ChatMessage {
+  final String text;
+  final bool isAi;
+  final DateTime timestamp;
+
+  ChatMessage({
+    required this.text,
+    required this.isAi,
+    required this.timestamp,
+  });
+}
+
+class AiCoachScreen extends StatefulWidget {
   const AiCoachScreen({super.key});
+
+  @override
+  State<AiCoachScreen> createState() => _AiCoachScreenState();
+}
+
+class _AiCoachScreenState extends State<AiCoachScreen> {
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final ChatService _chatService = ChatService();
+  final List<ChatMessage> _messages = [];
+  bool _isTyping = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initial AI message
+    _messages.add(ChatMessage(
+      text:
+          "Hello! I'm GYM AI, your personal fitness coach. How can I help you today?",
+      isAi: true,
+      timestamp: DateTime.now(),
+    ));
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  Future<void> _handleSend() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() {
+      _messages.add(
+        ChatMessage(text: text, isAi: false, timestamp: DateTime.now()),
+      );
+      _messageController.clear();
+      _isTyping = true;
+    });
+    _scrollToBottom();
+
+    try {
+      final response = await _chatService.sendMessage(text);
+      if (mounted) {
+        setState(() {
+          _messages.add(
+            ChatMessage(text: response, isAi: true, timestamp: DateTime.now()),
+          );
+          _isTyping = false;
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _messages.add(
+            ChatMessage(
+              text: "Sorry, I encountered an error: $e",
+              isAi: true,
+              timestamp: DateTime.now(),
+            ),
+          );
+          _isTyping = false;
+        });
+        _scrollToBottom();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,49 +108,58 @@ class AiCoachScreen extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'New Chat',
-            onPressed: () {},
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Clear Chat',
+            onPressed: () {
+              setState(() {
+                _messages.clear();
+                _messages.add(ChatMessage(
+                  text:
+                      "Hello! I'm GYM AI, your personal coach. Ready to go again?",
+                  isAi: true,
+                  timestamp: DateTime.now(),
+                ));
+              });
+            },
           ),
         ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: ListView(
+            child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              children: [
-                _buildSystemMessage(context, 'Today at 08:30'),
-                const SizedBox(height: 24),
-                _buildMessageBubble(
-                  context,
-                  message:
-                      'Good morning, John. Your squat 1RM went up by 5kg this month! Ready to tackle today\'s hypertrophy session?',
-                  isAi: true,
-                ),
-                const SizedBox(height: 16),
-                _buildMessageBubble(
-                  context,
-                  message:
-                      'Yeah, feeling great. But my lower back is a bit tight from deadlifts two days ago.',
-                  isAi: false,
-                ),
-                const SizedBox(height: 16),
-                _buildMessageBubble(
-                  context,
-                  message:
-                      'Understood. Let\'s swap out Barbell Rows for Chest-Supported Machine Rows to completely remove the lower back tax while still hitting the lats hard. Would you like me to update today\'s plan?',
-                  isAi: true,
-                ),
-                const SizedBox(height: 16),
-                _buildMessageBubble(
-                  context,
-                  message: 'Yes, please update it.',
-                  isAi: false,
-                ),
-              ],
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final message = _messages[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _buildMessageBubble(
+                    context,
+                    message: message.text,
+                    isAi: message.isAi,
+                  ),
+                );
+              },
             ),
           ),
+
+          if (_isTyping)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Row(
+                children: [
+                  Text(
+                    'GYM AI is typing...',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
           // Input Area
           Container(
@@ -73,45 +178,36 @@ class AiCoachScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: TextField(
+                    controller: _messageController,
+                    onSubmitted: (_) => _handleSend(),
                     decoration: InputDecoration(
                       hintText: 'Ask GYM AI anything...',
                       border: InputBorder.none,
-                      hintStyle: Theme.of(context).textTheme.bodyLarge
-                          ?.copyWith(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
+                      hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.send_rounded,
-                    color: Theme.of(context).colorScheme.surface,
-                    size: 20,
+                GestureDetector(
+                  onTap: _handleSend,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.send_rounded,
+                      color: Theme.of(context).colorScheme.surface,
+                      size: 20,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSystemMessage(BuildContext context, String text) {
-    return Center(
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
       ),
     );
   }
