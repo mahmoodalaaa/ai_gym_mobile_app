@@ -26,15 +26,15 @@ class UserProfile {
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
       id: json['id'],
-      auth0Id: json['auth0Id'],
-      email: json['email'],
+      auth0Id: json['auth0Id'] ?? '',
+      email: json['email'] ?? '',
       name: json['name'],
-      height: json['height']?.toDouble(),
-      weight: json['weight']?.toDouble(),
-      dailyCalories: json['dailyCalories'],
-      dailyProtein: json['dailyProtein'],
-      dailyCarbs: json['dailyCarbs'],
-      dailyFat: json['dailyFat'],
+      height: (json['height'] as num?)?.toDouble(),
+      weight: (json['weight'] as num?)?.toDouble(),
+      dailyCalories: (json['dailyCalories'] as num?)?.toInt(),
+      dailyProtein: (json['dailyProtein'] as num?)?.toInt(),
+      dailyCarbs: (json['dailyCarbs'] as num?)?.toInt(),
+      dailyFat: (json['dailyFat'] as num?)?.toInt(),
     );
   }
 

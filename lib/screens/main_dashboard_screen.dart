@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:auth0_flutter/auth0_flutter.dart' hide UserProfile;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/widgets/bottom_nav_bar.dart';
 import '../core/widgets/stat_card.dart';
 import 'performance_tracking_screen.dart';
@@ -6,8 +9,8 @@ import 'ai_coach_screen.dart';
 import 'profile_settings_screen.dart';
 import 'workout_detail_screen.dart';
 import 'weekly_plan_screen.dart';
-import 'package:auth0_flutter/auth0_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../services/user_service.dart';
+import '../models/user_profile.dart';
 
 class MainDashboardScreen extends StatefulWidget {
   const MainDashboardScreen({super.key});
@@ -48,22 +51,74 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   }
 }
 
-class _HomeContent extends StatelessWidget {
+class _HomeContent extends StatefulWidget {
   const _HomeContent();
 
   @override
+  State<_HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<_HomeContent> {
+  UserProfile? _profile;
+  String? _pictureUrl;
+  bool _isLoading = true;
+  bool _isMetric = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    try {
+      final userService = UserService();
+      final auth0 = Auth0(dotenv.env['AUTH0_DOMAIN']!, dotenv.env['AUTH0_CLIENT_ID']!);
+      
+      final results = await Future.wait([
+        userService.fetchCurrentUser(),
+        auth0.credentialsManager.credentials(),
+        SharedPreferences.getInstance(),
+      ]);
+
+      final profile = results[0] as UserProfile;
+      final credentials = results[1] as Credentials;
+      final prefs = results[2] as SharedPreferences;
+
+      if (mounted) {
+        setState(() {
+          _profile = profile;
+          _pictureUrl = credentials.user.pictureUrl?.toString();
+          _isMetric = prefs.getBool('is_metric') ?? true;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading dashboard data: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return SafeArea(
       bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
-        children: [
-          _buildHeader(context),
-          const SizedBox(height: 40),
-          _buildTodaysWorkout(context),
-          const SizedBox(height: 40),
-          _buildQuickStats(context),
-        ],
+      child: RefreshIndicator(
+        onRefresh: _loadDashboardData,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
+          children: [
+            _buildHeader(context),
+            const SizedBox(height: 40),
+            _buildTodaysWorkout(context),
+            const SizedBox(height: 40),
+            _buildQuickStats(context),
+          ],
+        ),
       ),
     );
   }
@@ -71,13 +126,7 @@ class _HomeContent extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     final now = DateTime.now();
     const days = [
-      'MONDAY',
-      'TUESDAY',
-      'WEDNESDAY',
-      'THURSDAY',
-      'FRIDAY',
-      'SATURDAY',
-      'SUNDAY',
+      'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'
     ];
     final formattedDate = '${days[now.weekday - 1]}, ${now.day}';
 
@@ -96,31 +145,19 @@ class _HomeContent extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text('Let’s Go', style: Theme.of(context).textTheme.displaySmall),
+            Text(
+              "Let's Go!",
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
-        FutureBuilder<Credentials>(
-          future: Auth0(
-            dotenv.env['AUTH0_DOMAIN']!,
-            dotenv.env['AUTH0_CLIENT_ID']!,
-          ).credentialsManager.credentials(),
-          builder: (context, snapshot) {
-            String? imageUrl;
-            if (snapshot.hasData && snapshot.data?.user.pictureUrl != null) {
-              imageUrl = snapshot.data!.user.pictureUrl.toString();
-            }
-            return CircleAvatar(
-              radius: 24,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerLow,
-              backgroundImage: imageUrl != null
-                  ? NetworkImage(imageUrl)
-                  : const NetworkImage(
-                      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-                    ),
-            );
-          },
+        CircleAvatar(
+          radius: 24,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+          backgroundImage: _pictureUrl != null ? NetworkImage(_pictureUrl!) : null,
+          child: _pictureUrl == null ? const Icon(Icons.person) : null,
         ),
       ],
     );
@@ -260,36 +297,112 @@ class _HomeContent extends StatelessWidget {
   }
 
   Widget _buildQuickStats(BuildContext context) {
+    final weight = _profile?.weight?.toString() ?? '--';
+    final height = _profile?.height?.toString() ?? '--';
+    final weightUnit = _isMetric ? 'kg' : 'lbs';
+    final heightUnit = _isMetric ? 'cm' : 'in';
+    final calories = _profile?.dailyCalories?.toString() ?? '--';
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'THIS WEEK',
+          'YOUR VITALS & TARGETS',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
+            letterSpacing: 1.5,
           ),
         ),
         const SizedBox(height: 16),
-        const Row(
+        Row(
           children: [
             Expanded(
               child: StatCard(
-                title: 'Volume',
-                value: '12.4k',
-                subtitle: 'kg lifted',
-                icon: Icons.fitness_center,
+                title: 'Weight',
+                value: weight,
+                subtitle: 'current ($weightUnit)',
+                icon: Icons.monitor_weight_outlined,
               ),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Expanded(
               child: StatCard(
-                title: 'Workouts',
-                value: '4',
-                subtitle: 'completed',
-                icon: Icons.check_circle_outline,
+                title: 'Height',
+                value: height,
+                subtitle: 'current ($heightUnit)',
+                icon: Icons.height,
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: StatCard(
+            title: 'Daily Calories',
+            value: calories,
+            subtitle: 'target energy intake',
+            icon: Icons.local_fire_department_outlined,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildMacrosBar(context),
+      ],
+    );
+  }
+
+  Widget _buildMacrosBar(BuildContext context) {
+    final p = _profile?.dailyProtein ?? 0;
+    final c = _profile?.dailyCarbs ?? 0;
+    final f = _profile?.dailyFat ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'MACRO TARGETS',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildMacroInfo('PROTEIN', '${p}G', Theme.of(context).colorScheme.primary),
+              _buildMacroInfo('CARBS', '${c}G', Colors.orangeAccent),
+              _buildMacroInfo('FAT', '${f}G', Colors.lightBlueAccent),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMacroInfo(String label, String value, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
       ],
     );
