@@ -18,7 +18,9 @@ class EnhancedWorkoutDetailScreen extends StatelessWidget {
               decoration: const BoxDecoration(
                 color: Colors.black,
                 image: DecorationImage(
-                  image: NetworkImage('https://bigyellow.site/gifs/1IG6gVF.gif'),
+                  image: NetworkImage(
+                    'https://bigyellow.site/gifs/1IG6gVF.gif',
+                  ),
                   fit: BoxFit.contain,
                 ),
               ),
