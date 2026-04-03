@@ -54,6 +54,16 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       // Fetch Backend data
       final profile = await userService.fetchCurrentUser();
 
+      // Silent Sync: If backend has placeholder email, update it with Auth0 email
+      if (profile.email == 'temp-email@domain.com' && user.email != null) {
+        final syncedProfile = profile.copyWith(email: user.email);
+        // Fire and forget update to avoid blocking UI
+        userService.updateProfile(syncedProfile).catchError((e) {
+          debugPrint('Silent sync failed: $e');
+          return profile;
+        });
+      }
+
       setState(() {
         _profile = profile;
         _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;

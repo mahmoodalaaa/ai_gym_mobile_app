@@ -40,6 +40,7 @@ class UserProfile {
 
   Map<String, dynamic> toJson() {
     return {
+      'email': email,
       'name': name,
       'height': height,
       'weight': weight,
@@ -51,6 +52,7 @@ class UserProfile {
   }
 
   UserProfile copyWith({
+    String? email,
     String? name,
     double? height,
     double? weight,
@@ -62,7 +64,7 @@ class UserProfile {
     return UserProfile(
       id: id,
       auth0Id: auth0Id,
-      email: email,
+      email: email ?? this.email,
       name: name ?? this.name,
       height: height ?? this.height,
       weight: weight ?? this.weight,
