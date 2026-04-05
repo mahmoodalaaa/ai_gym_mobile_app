@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:auth0_flutter/auth0_flutter.dart' hide UserProfile;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../core/widgets/primary_button.dart';
 import '../core/widgets/custom_text_input.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
 import '../models/user_profile.dart';
+import '../providers/locale_provider.dart';
+import '../l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -20,7 +22,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   bool _notificationsEnabled = true;
   bool _isMetric = true;
   TimeOfDay? _notificationTime;
-  
+
   final TextEditingController _weightController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
   final TextEditingController _caloriesController = TextEditingController();
@@ -45,11 +47,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userService = UserService();
-      
-      final auth0 = Auth0(dotenv.env['AUTH0_DOMAIN']!, dotenv.env['AUTH0_CLIENT_ID']!);
+
+      final auth0 = Auth0(
+        dotenv.env['AUTH0_DOMAIN']!,
+        dotenv.env['AUTH0_CLIENT_ID']!,
+      );
       final credentials = await auth0.credentialsManager.credentials();
       final user = credentials.user;
-      
+
       final profile = await userService.fetchCurrentUser();
 
       if (profile.email == 'temp-email@domain.com' && user.email != null) {
@@ -67,14 +72,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         _pictureUrl = user.pictureUrl?.toString();
         _displayName = user.name ?? profile.name ?? 'User';
         _displayEmail = user.email ?? profile.email;
-        
+
         _weightController.text = profile.weight?.toString() ?? '';
         _heightController.text = profile.height?.toString() ?? '';
         _caloriesController.text = profile.dailyCalories?.toString() ?? '';
         _proteinController.text = profile.dailyProtein?.toString() ?? '';
         _carbsController.text = profile.dailyCarbs?.toString() ?? '';
         _fatController.text = profile.dailyFat?.toString() ?? '';
-        
+
         final hour = prefs.getInt('notification_hour');
         final minute = prefs.getInt('notification_minute');
         if (hour != null && minute != null) {
@@ -84,9 +89,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading profile: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading profile: $e')));
       }
       setState(() => _isLoading = false);
     }
@@ -141,9 +146,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Account Hub'),
+        title: Text(l10n.accountHub),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -153,41 +160,51 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           _buildProfileHeader(context),
           const SizedBox(height: 48),
 
-          _buildSectionTitle(context, 'HEALTH & NUTRITION'),
+          _buildSectionTitle(context, l10n.healthNutrition),
           const SizedBox(height: 16),
-          _buildMacroInputs(),
+          _buildMacroInputs(l10n),
           const SizedBox(height: 24),
-          _buildBodyMetricsInputs(),
+          _buildBodyMetricsInputs(l10n),
 
           const SizedBox(height: 48),
-          _buildSectionTitle(context, 'APP PREFERENCES'),
+          _buildSectionTitle(context, l10n.appPreferences),
           const SizedBox(height: 16),
           _buildSettingsTile(
-            context, 
-            'Units of Measure', 
+            context,
+            l10n.language,
+            _getLanguageName(context),
+            icon: Icons.language,
+            onTap: () => _showLanguageSelector(context),
+          ),
+          _buildSettingsTile(
+            context,
+            l10n.unitsOfMeasure,
             _isMetric ? 'Metric (kg/cm)' : 'Imperial (lbs/in)',
             icon: Icons.straighten,
             onTap: () async {
               setState(() => _isMetric = !_isMetric);
               await _savePreference('is_metric', _isMetric);
-            }
+            },
           ),
           _buildToggleTile(
-            context, 
-            'Push Notifications', 
-            _notificationsEnabled, 
+            context,
+            l10n.pushNotifications,
+            _notificationsEnabled,
             icon: Icons.notifications_none,
-            subtitle: _notificationTime != null && _notificationsEnabled 
-              ? 'Reminder at ${_notificationTime!.format(context)}' 
-              : 'Daily Workout Reminders',
+            subtitle: _notificationTime != null && _notificationsEnabled
+                ? 'Reminder at ${_notificationTime!.format(context)}'
+                : 'Daily Workout Reminders',
             onChanged: (val) async {
               if (val) {
                 final time = await showTimePicker(
-                  context: context, 
-                  initialTime: _notificationTime ?? const TimeOfDay(hour: 8, minute: 0),
+                  context: context,
+                  initialTime:
+                      _notificationTime ?? const TimeOfDay(hour: 8, minute: 0),
                 );
                 if (time != null) {
-                  await NotificationService().scheduleDailyWorkoutNotification(time);
+                  await NotificationService().scheduleDailyWorkoutNotification(
+                    time,
+                  );
                   setState(() {
                     _notificationsEnabled = true;
                     _notificationTime = time;
@@ -201,34 +218,56 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 setState(() => _notificationsEnabled = false);
                 await _savePreference('notifications_enabled', false);
               }
-            }
+            },
           ),
 
           const SizedBox(height: 48),
-          _buildSectionTitle(context, 'SUPPORT & LEGAL'),
-          const SizedBox(height: 16),
-          _buildActionTile(context, 'Help Center', Icons.help_outline, () => _showComingSoon(context, 'Support')),
-          _buildActionTile(context, 'Terms of Service', Icons.description_outlined, () => _showComingSoon(context, 'Terms')),
-          _buildActionTile(context, 'Privacy Policy', Icons.privacy_tip_outlined, () => _showComingSoon(context, 'Privacy')),
-          _buildActionTile(context, 'Contact Us', Icons.mail_outline, () => _showComingSoon(context, 'Contact')),
-
-          const SizedBox(height: 48),
-          _buildSectionTitle(context, 'DANGER ZONE'),
+          _buildSectionTitle(context, l10n.supportLegal),
           const SizedBox(height: 16),
           _buildActionTile(
-            context, 
-            'Log Out', 
-            Icons.logout, 
+            context,
+            l10n.helpCenter,
+            Icons.help_outline,
+            () => _showComingSoon(context, l10n.helpCenter),
+          ),
+          _buildActionTile(
+            context,
+            l10n.termsOfService,
+            Icons.description_outlined,
+            () => _showComingSoon(context, l10n.termsOfService),
+          ),
+          _buildActionTile(
+            context,
+            l10n.privacyPolicy,
+            Icons.privacy_tip_outlined,
+            () => _showComingSoon(context, l10n.privacyPolicy),
+          ),
+          _buildActionTile(
+            context,
+            l10n.contactUs,
+            Icons.mail_outline,
+            () => _showComingSoon(context, l10n.contactUs),
+          ),
+
+          const SizedBox(height: 48),
+          _buildSectionTitle(context, l10n.dangerZone),
+          const SizedBox(height: 16),
+          _buildActionTile(
+            context,
+            l10n.logOut,
+            Icons.logout,
             _handleLogout,
             color: Colors.redAccent,
           ),
-          
+
           const SizedBox(height: 60),
           Center(
             child: Text(
               'AiGym v1.0.0 (BETA)',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                 letterSpacing: 1.5,
               ),
             ),
@@ -249,17 +288,31 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         children: [
           CircleAvatar(
             radius: 32,
-            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-            backgroundImage: _pictureUrl != null ? NetworkImage(_pictureUrl!) : null,
-            child: _pictureUrl == null ? const Icon(Icons.person, size: 30) : null,
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest,
+            backgroundImage: _pictureUrl != null
+                ? NetworkImage(_pictureUrl!)
+                : null,
+            child: _pictureUrl == null
+                ? const Icon(Icons.person, size: 30)
+                : null,
           ),
           const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_displayName ?? 'User', style: Theme.of(context).textTheme.titleLarge),
-                Text(_displayEmail ?? '', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.primary)),
+                Text(
+                  _displayName ?? 'User',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                Text(
+                  _displayEmail ?? '',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -268,12 +321,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
   }
 
-  Widget _buildMacroInputs() {
+  Widget _buildMacroInputs(AppLocalizations l10n) {
     return Column(
       children: [
         CustomTextInput(
           controller: _caloriesController,
-          label: 'CALORIE GOAL',
+          label: l10n.calorieGoal,
           hintText: '2500 kcal',
           prefixIcon: Icons.local_fire_department,
           onChanged: (_) => _onFieldChanged(),
@@ -281,23 +334,60 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: CustomTextInput(controller: _proteinController, label: 'PROTEIN', hintText: '150g', onChanged: (_) => _onFieldChanged())),
+            Expanded(
+              child: CustomTextInput(
+                controller: _proteinController,
+                label: l10n.protein,
+                hintText: '150g',
+                onChanged: (_) => _onFieldChanged(),
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: CustomTextInput(controller: _carbsController, label: 'CARBS', hintText: '200g', onChanged: (_) => _onFieldChanged())),
+            Expanded(
+              child: CustomTextInput(
+                controller: _carbsController,
+                label: l10n.carbs,
+                hintText: '200g',
+                onChanged: (_) => _onFieldChanged(),
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: CustomTextInput(controller: _fatController, label: 'FAT', hintText: '70g', onChanged: (_) => _onFieldChanged())),
+            Expanded(
+              child: CustomTextInput(
+                controller: _fatController,
+                label: l10n.fat,
+                hintText: '70g',
+                onChanged: (_) => _onFieldChanged(),
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildBodyMetricsInputs() {
+  Widget _buildBodyMetricsInputs(AppLocalizations l10n) {
     return Row(
       children: [
-        Expanded(child: CustomTextInput(controller: _weightController, label: 'WEIGHT', hintText: '80', prefixIcon: Icons.monitor_weight, onChanged: (_) => _onFieldChanged())),
+        Expanded(
+          child: CustomTextInput(
+            controller: _weightController,
+            label: l10n.weightLabel,
+            hintText: '80',
+            prefixIcon: Icons.monitor_weight,
+            onChanged: (_) => _onFieldChanged(),
+          ),
+        ),
         const SizedBox(width: 16),
-        Expanded(child: CustomTextInput(controller: _heightController, label: 'HEIGHT', hintText: '180', prefixIcon: Icons.height, onChanged: (_) => _onFieldChanged())),
+        Expanded(
+          child: CustomTextInput(
+            controller: _heightController,
+            label: l10n.heightLabel,
+            hintText: '180',
+            prefixIcon: Icons.height,
+            onChanged: (_) => _onFieldChanged(),
+          ),
+        ),
       ],
     );
   }
@@ -313,7 +403,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
   }
 
-  Widget _buildSettingsTile(BuildContext context, String title, String value, {required IconData icon, VoidCallback? onTap}) {
+  Widget _buildSettingsTile(
+    BuildContext context,
+    String title,
+    String value, {
+    required IconData icon,
+    VoidCallback? onTap,
+  }) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
@@ -321,7 +417,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(value, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.primary)),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
           const Icon(Icons.chevron_right, size: 20),
         ],
       ),
@@ -329,23 +430,110 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
   }
 
-  Widget _buildToggleTile(BuildContext context, String title, bool value, {required IconData icon, String? subtitle, required ValueChanged<bool> onChanged}) {
+  Widget _buildToggleTile(
+    BuildContext context,
+    String title,
+    bool value, {
+    required IconData icon,
+    String? subtitle,
+    required ValueChanged<bool> onChanged,
+  }) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
       title: Text(title, style: Theme.of(context).textTheme.bodyLarge),
-      subtitle: subtitle != null ? Text(subtitle, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.primary)) : null,
+      subtitle: subtitle != null
+          ? Text(
+              subtitle,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            )
+          : null,
       trailing: Switch(value: value, onChanged: onChanged),
     );
   }
 
-  Widget _buildActionTile(BuildContext context, String title, IconData icon, VoidCallback onTap, {Color? color}) {
+  Widget _buildActionTile(
+    BuildContext context,
+    String title,
+    IconData icon,
+    VoidCallback onTap, {
+    Color? color,
+  }) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: color ?? Theme.of(context).colorScheme.onSurfaceVariant),
-      title: Text(title, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: color)),
+      leading: Icon(
+        icon,
+        color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+      title: Text(
+        title,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: color),
+      ),
       trailing: const Icon(Icons.open_in_new, size: 16),
       onTap: onTap,
+    );
+  }
+
+  String _getLanguageName(BuildContext context) {
+    final locale = Provider.of<LocaleProvider>(context, listen: false).locale;
+    if (locale == null) return 'System Default';
+    switch (locale.languageCode) {
+      case 'en': return 'English';
+      case 'ar': return 'العربية';
+      case 'de': return 'Deutsch';
+      case 'fr': return 'Français';
+      case 'tr': return 'Türkçe';
+      default: return 'English';
+    }
+  }
+
+  void _showLanguageSelector(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.selectLanguage,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            _buildLanguageTile(context, 'English', 'en', localeProvider),
+            _buildLanguageTile(context, 'العربية', 'ar', localeProvider),
+            _buildLanguageTile(context, 'Deutsch', 'de', localeProvider),
+            _buildLanguageTile(context, 'Français', 'fr', localeProvider),
+            _buildLanguageTile(context, 'Türkçe', 'tr', localeProvider),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageTile(BuildContext context, String name, String code, LocaleProvider provider) {
+    final isSelected = provider.locale?.languageCode == code || (provider.locale == null && code == 'en');
+    
+    return ListTile(
+      title: Text(name, style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+        color: isSelected ? Theme.of(context).colorScheme.primary : null,
+        fontWeight: isSelected ? FontWeight.bold : null,
+      )),
+      trailing: isSelected ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary) : null,
+      onTap: () {
+        provider.setLocale(Locale(code));
+        Navigator.pop(context);
+      },
     );
   }
 
@@ -353,21 +541,33 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('$feature Center'),
+        title: Text(feature),
         content: Text('This $feature logic is coming soon in the next update. Stay tuned!'),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
 
   Future<void> _handleLogout() async {
     try {
-      final auth0 = Auth0(dotenv.env['AUTH0_DOMAIN']!, dotenv.env['AUTH0_CLIENT_ID']!);
+      final auth0 = Auth0(
+        dotenv.env['AUTH0_DOMAIN']!,
+        dotenv.env['AUTH0_CLIENT_ID']!,
+      );
       await auth0.webAuthentication(scheme: 'aigym').logout();
       await auth0.credentialsManager.clearCredentials();
-      if (mounted) Navigator.of(context, rootNavigator: true).pushReplacementNamed('/');
+      if (mounted)
+        Navigator.of(context, rootNavigator: true).pushReplacementNamed('/');
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Logout failed: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Logout failed: $e')));
     }
   }
 }

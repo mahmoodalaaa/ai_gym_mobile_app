@@ -13,6 +13,9 @@ import 'screens/profile_settings_screen.dart';
 import 'screens/weekly_plan_screen.dart';
 import 'screens/workout_detail_screen.dart';
 import 'services/notification_service.dart';
+import 'providers/locale_provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +25,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
         Provider.value(value: 42),
       ],
       child: const AiGymApp(),
@@ -34,10 +38,26 @@ class AiGymApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+
     return MaterialApp(
       title: 'GymAI',
       theme: AppTheme.darkTheme,
       debugShowCheckedModeBanner: false,
+      locale: localeProvider.locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en'),
+        Locale('ar'),
+        Locale('de'),
+        Locale('fr'),
+        Locale('tr'),
+      ],
       initialRoute: '/',
       onGenerateRoute: (settings) {
         final Map<String, WidgetBuilder> routes = {

@@ -4,6 +4,7 @@ import 'package:auth0_flutter/auth0_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../core/widgets/primary_button.dart';
+import '../l10n/app_localizations.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -74,6 +75,7 @@ class _LandingScreenState extends State<LandingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
@@ -111,9 +113,8 @@ class _LandingScreenState extends State<LandingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 48),
-                    // App Title / Logo
                     Text(
-                      'GYM AI',
+                      l10n.appTitle.toUpperCase(),
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             color: Theme.of(context).colorScheme.primaryContainer,
                             letterSpacing: 4,
@@ -131,7 +132,7 @@ class _LandingScreenState extends State<LandingScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'High-octane training for the focused athlete.',
+                      l10n.slogan,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
@@ -143,13 +144,13 @@ class _LandingScreenState extends State<LandingScreen> {
                     else ...[
                       // Primary Action
                       PrimaryButton(
-                        text: 'GET STARTED',
+                        text: l10n.getStarted.toUpperCase(),
                         onPressed: _login,
                       ),
                       const SizedBox(height: 16),
                       // Secondary Action
                       PrimaryButton(
-                        text: 'LOG IN',
+                        text: l10n.signin.toUpperCase(),
                         isSecondary: true,
                         onPressed: _login,
                       ),

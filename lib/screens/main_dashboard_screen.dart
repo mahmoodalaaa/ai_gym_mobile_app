@@ -11,6 +11,7 @@ import 'workout_detail_screen.dart';
 import 'weekly_plan_screen.dart';
 import '../services/user_service.dart';
 import '../models/user_profile.dart';
+import '../l10n/app_localizations.dart';
 
 class MainDashboardScreen extends StatefulWidget {
   const MainDashboardScreen({super.key});
@@ -130,6 +131,7 @@ class _HomeContentState extends State<_HomeContent> {
     ];
     final formattedDate = '${days[now.weekday - 1]}, ${now.day}';
 
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -146,7 +148,7 @@ class _HomeContentState extends State<_HomeContent> {
             ),
             const SizedBox(height: 8),
             Text(
-              "Let's Go!",
+              l10n.welcomeBack,
               style: Theme.of(context).textTheme.displaySmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -164,6 +166,7 @@ class _HomeContentState extends State<_HomeContent> {
   }
 
   Widget _buildTodaysWorkout(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -171,7 +174,7 @@ class _HomeContentState extends State<_HomeContent> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'TODAY\'S PROGRAM',
+              l10n.todaysProgram,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -184,7 +187,7 @@ class _HomeContentState extends State<_HomeContent> {
                 );
               },
               child: Text(
-                'View Week',
+                l10n.viewWeek,
                 style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ),
@@ -283,7 +286,7 @@ class _HomeContentState extends State<_HomeContent> {
                             context,
                           ).colorScheme.onSurface,
                         ),
-                        child: const Text('START WORKOUT'),
+                        child: Text(l10n.startWorkout),
                       ),
                     ),
                   ],
@@ -297,6 +300,7 @@ class _HomeContentState extends State<_HomeContent> {
   }
 
   Widget _buildQuickStats(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final weight = _profile?.weight?.toString() ?? '--';
     final height = _profile?.height?.toString() ?? '--';
     final weightUnit = _isMetric ? 'kg' : 'lbs';
@@ -307,7 +311,7 @@ class _HomeContentState extends State<_HomeContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'YOUR VITALS & TARGETS',
+          l10n.vitalsTargets,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
             letterSpacing: 1.5,
@@ -318,7 +322,7 @@ class _HomeContentState extends State<_HomeContent> {
           children: [
             Expanded(
               child: StatCard(
-                title: 'Weight',
+                title: l10n.weightLabel,
                 value: weight,
                 subtitle: 'current ($weightUnit)',
                 icon: Icons.monitor_weight_outlined,
@@ -327,7 +331,7 @@ class _HomeContentState extends State<_HomeContent> {
             const SizedBox(width: 16),
             Expanded(
               child: StatCard(
-                title: 'Height',
+                title: l10n.heightLabel,
                 value: height,
                 subtitle: 'current ($heightUnit)',
                 icon: Icons.height,
@@ -339,7 +343,7 @@ class _HomeContentState extends State<_HomeContent> {
         SizedBox(
           width: double.infinity,
           child: StatCard(
-            title: 'Daily Calories',
+            title: l10n.calorieGoal,
             value: calories,
             subtitle: 'target energy intake',
             icon: Icons.local_fire_department_outlined,
@@ -356,6 +360,7 @@ class _HomeContentState extends State<_HomeContent> {
     final c = _profile?.dailyCarbs ?? 0;
     final f = _profile?.dailyFat ?? 0;
 
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -366,7 +371,7 @@ class _HomeContentState extends State<_HomeContent> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'MACRO TARGETS',
+            l10n.macroTargets,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
               letterSpacing: 1.2,
@@ -376,9 +381,9 @@ class _HomeContentState extends State<_HomeContent> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMacroInfo('PROTEIN', '${p}G', Theme.of(context).colorScheme.primary),
-              _buildMacroInfo('CARBS', '${c}G', Colors.orangeAccent),
-              _buildMacroInfo('FAT', '${f}G', Colors.lightBlueAccent),
+              _buildMacroInfo(l10n.protein, '${p}G', Theme.of(context).colorScheme.primary),
+              _buildMacroInfo(l10n.carbs, '${c}G', Colors.orangeAccent),
+              _buildMacroInfo(l10n.fat, '${f}G', Colors.lightBlueAccent),
             ],
           ),
         ],

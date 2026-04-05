@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import '../services/chat_service.dart';
 
 class ChatMessage {
@@ -27,9 +28,15 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   final List<ChatMessage> _messages = [];
   bool _isTyping = false;
 
+  // Speech to Text
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechEnabled = false;
+  bool _isListening = false;
+
   @override
   void initState() {
     super.initState();
+    _initSpeech();
     // Initial AI message
     _messages.add(ChatMessage(
       text:
@@ -37,6 +44,54 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
       isAi: true,
       timestamp: DateTime.now(),
     ));
+  }
+
+  /// This has to happen only once per app
+  void _initSpeech() async {
+    _speechEnabled = await _speechToText.initialize(
+      onStatus: (status) {
+        debugPrint('Speech status: $status');
+        if (status == 'done' || status == 'notListening') {
+          setState(() => _isListening = false);
+        }
+      },
+      onError: (errorNotification) {
+        debugPrint('Speech error: $errorNotification');
+        setState(() => _isListening = false);
+      },
+    );
+    debugPrint('Speech engine initialized: $_speechEnabled');
+    setState(() {});
+  }
+
+  void _startListening() async {
+    debugPrint('Searching for available microphone...');
+    
+    // Clear previous text for a clean start
+    _messageController.clear();
+
+    await _speechToText.listen(
+      onResult: (result) {
+        debugPrint('Speech result: ${result.recognizedWords} (Final: ${result.finalResult})');
+        setState(() {
+          _messageController.text = result.recognizedWords;
+          _messageController.selection = TextSelection.fromPosition(
+            TextPosition(offset: _messageController.text.length),
+          );
+        });
+      },
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 3), // Shorter pause threshold
+      partialResults: true,
+      cancelOnError: false, // Don't stop on a single flub
+      listenMode: ListenMode.search, // Search is often more responsive on iOS
+    );
+    setState(() => _isListening = true);
+  }
+
+  void _stopListening() async {
+    await _speechToText.stop();
+    setState(() => _isListening = false);
   }
 
   @override
@@ -176,6 +231,29 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
             ),
             child: Row(
               children: [
+                if (_speechEnabled)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onTap: _isListening ? _stopListening : _startListening,
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: _isListening
+                              ? Colors.red.withOpacity(0.1)
+                              : Theme.of(context).colorScheme.surfaceContainerHighest,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _isListening ? Icons.mic : Icons.mic_none_rounded,
+                          color: _isListening
+                              ? Colors.red
+                              : Theme.of(context).colorScheme.primary,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ),
                 Expanded(
                   child: TextField(
                     controller: _messageController,

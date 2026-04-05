@@ -81,5 +81,9 @@
 		<true/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>We need access to your microphone to allow you to talk to your AI coach.</string>
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>We need speech recognition to transcribe your voice into text for the AI coach.</string>
 	</dict>
 </plist>
