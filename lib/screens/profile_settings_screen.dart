@@ -55,14 +55,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       final credentials = await auth0.credentialsManager.credentials();
       final user = credentials.user;
 
-      final profile = await userService.fetchCurrentUser();
+      var profile = await userService.fetchCurrentUser();
 
       if (profile.email == 'temp-email@domain.com' && user.email != null) {
         final syncedProfile = profile.copyWith(email: user.email);
-        userService.updateProfile(syncedProfile).catchError((e) {
+        try {
+          profile = await userService.updateProfile(syncedProfile);
+        } catch (e) {
           debugPrint('Silent sync failed: $e');
-          return profile;
-        });
+        }
       }
 
       setState(() {
@@ -561,13 +562,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       );
       await auth0.webAuthentication(scheme: 'aigym').logout();
       await auth0.credentialsManager.clearCredentials();
-      if (mounted)
+      if (mounted) {
         Navigator.of(context, rootNavigator: true).pushReplacementNamed('/');
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Logout failed: $e')));
+      }
     }
   }
 }
