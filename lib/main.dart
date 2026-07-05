@@ -14,6 +14,7 @@ import 'screens/weekly_plan_screen.dart';
 import 'screens/workout_detail_screen.dart';
 import 'services/notification_service.dart';
 import 'providers/locale_provider.dart';
+import 'providers/workout_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 
@@ -26,6 +27,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => WorkoutProvider()),
         Provider.value(value: 42),
       ],
       child: const AiGymApp(),
@@ -66,7 +68,21 @@ class AiGymApp extends StatelessWidget {
           '/active_workout': (context) => const ActiveWorkoutScreen(),
           '/adjust_workout': (context) => const AdjustWorkoutPlanScreen(),
           '/ai_coach': (context) => const AiCoachScreen(),
-          '/enhanced_workout': (context) => const EnhancedWorkoutDetailScreen(),
+          '/enhanced_workout': (context) {
+            final args = settings.arguments;
+            if (args is Map<String, dynamic>) {
+              return EnhancedWorkoutDetailScreen(
+                exerciseName: args['exerciseName'] as String? ?? 'Exercise',
+                type: args['type'] as String?,
+                description: args['description'] as String?,
+                cues: args['cues'] as List<String>?,
+                gifUrl: args['gifUrl'] as String?,
+              );
+            } else if (args is String) {
+              return EnhancedWorkoutDetailScreen(exerciseName: args);
+            }
+            return const EnhancedWorkoutDetailScreen(exerciseName: 'Exercise');
+          },
           '/performance': (context) => const PerformanceTrackingScreen(),
           '/profile': (context) => const ProfileSettingsScreen(),
           '/weekly_plan': (context) => const WeeklyPlanScreen(),

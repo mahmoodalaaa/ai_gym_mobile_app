@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:auth0_flutter/auth0_flutter.dart' hide UserProfile;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../core/widgets/bottom_nav_bar.dart';
 import '../core/widgets/stat_card.dart';
 import 'performance_tracking_screen.dart';
@@ -11,6 +12,8 @@ import 'workout_detail_screen.dart';
 import 'weekly_plan_screen.dart';
 import '../services/user_service.dart';
 import '../models/user_profile.dart';
+import '../models/workout_session.dart';
+import '../providers/workout_provider.dart';
 import '../l10n/app_localizations.dart';
 
 class MainDashboardScreen extends StatefulWidget {
@@ -106,6 +109,8 @@ class _HomeContentState extends State<_HomeContent> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final workoutProvider = Provider.of<WorkoutProvider>(context);
+
     return SafeArea(
       bottom: false,
       child: RefreshIndicator(
@@ -118,6 +123,8 @@ class _HomeContentState extends State<_HomeContent> {
             _buildTodaysWorkout(context),
             const SizedBox(height: 40),
             _buildQuickStats(context),
+            const SizedBox(height: 40),
+            _buildWorkoutStatsOverview(context, workoutProvider),
           ],
         ),
       ),
@@ -167,6 +174,16 @@ class _HomeContentState extends State<_HomeContent> {
 
   Widget _buildTodaysWorkout(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final provider = Provider.of<WorkoutProvider>(context, listen: false);
+    final template = provider.templates.isNotEmpty ? provider.templates.first : null;
+
+    if (template == null) return const SizedBox.shrink();
+
+    int totalSets = 0;
+    for (var ex in template.exercises) {
+      totalSets += ex.defaultSets;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -205,7 +222,7 @@ class _HomeContentState extends State<_HomeContent> {
               // Background Image
               Positioned.fill(
                 child: Image.network(
-                  'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=800&auto=format&fit=crop',
+                  template.imageUrl,
                   fit: BoxFit.cover,
                   color: Colors.black.withValues(alpha: 0.4),
                   colorBlendMode: BlendMode.darken,
@@ -232,7 +249,7 @@ class _HomeContentState extends State<_HomeContent> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            'HYPERTROPHY',
+                            template.category,
                             style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
                                   color: Theme.of(
@@ -248,19 +265,19 @@ class _HomeContentState extends State<_HomeContent> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '60 MIN',
+                          '${template.estimatedDurationMinutes} MIN',
                           style: Theme.of(context).textTheme.labelMedium,
                         ),
                       ],
                     ),
                     const SizedBox(height: 60),
                     Text(
-                      'Heavy Back & Biceps',
+                      template.name,
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '6 movements • 24 sets',
+                      '${template.exercises.length} movements • $totalSets sets',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -273,7 +290,7 @@ class _HomeContentState extends State<_HomeContent> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const WorkoutDetailScreen(),
+                              builder: (_) => WorkoutDetailScreen(template: template),
                             ),
                           );
                         },
@@ -301,7 +318,9 @@ class _HomeContentState extends State<_HomeContent> {
 
   Widget _buildQuickStats(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final weight = _profile?.weight?.toString() ?? '--';
+    final workoutProvider = Provider.of<WorkoutProvider>(context);
+    final latestWeight = workoutProvider.weightHistory.isNotEmpty ? workoutProvider.weightHistory.first.weight : (_profile?.weight ?? 0.0);
+    final weight = latestWeight > 0 ? latestWeight.toStringAsFixed(1) : '--';
     final height = _profile?.height?.toString() ?? '--';
     final weightUnit = _isMetric ? 'kg' : 'lbs';
     final heightUnit = _isMetric ? 'cm' : 'in';
@@ -321,11 +340,14 @@ class _HomeContentState extends State<_HomeContent> {
         Row(
           children: [
             Expanded(
-              child: StatCard(
-                title: l10n.weightLabel,
-                value: weight,
-                subtitle: 'current ($weightUnit)',
-                icon: Icons.monitor_weight_outlined,
+              child: GestureDetector(
+                onTap: () => _showLogWeightDialog(context),
+                child: StatCard(
+                  title: l10n.weightLabel,
+                  value: weight,
+                  subtitle: 'current ($weightUnit) • tap to log',
+                  icon: Icons.monitor_weight_outlined,
+                ),
               ),
             ),
             const SizedBox(width: 16),
@@ -407,6 +429,198 @@ class _HomeContentState extends State<_HomeContent> {
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
             color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showLogWeightDialog(BuildContext context) {
+    final workoutProvider = Provider.of<WorkoutProvider>(context, listen: false);
+    final latestWeight = workoutProvider.weightHistory.isNotEmpty ? workoutProvider.weightHistory.first.weight : (_profile?.weight ?? 0.0);
+    final controller = TextEditingController(
+      text: latestWeight > 0 ? latestWeight.toString() : '',
+    );
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: Text(
+          'Log Body Weight',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enter your current weight (${_isMetric ? 'kg' : 'lbs'}):',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: Theme.of(context).textTheme.headlineMedium,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                suffixText: _isMetric ? 'kg' : 'lbs',
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final double? newWeight = double.tryParse(controller.text);
+              if (newWeight != null && newWeight > 0) {
+                Provider.of<WorkoutProvider>(context, listen: false).logWeight(
+                  newWeight,
+                  currentProfile: _profile,
+                );
+                if (_profile != null) {
+                  setState(() {
+                    _profile = _profile!.copyWith(weight: newWeight);
+                  });
+                }
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Weight logged successfully: $newWeight ${_isMetric ? 'kg' : 'lbs'}'),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWorkoutStatsOverview(BuildContext context, WorkoutProvider provider) {
+    final workoutsCount = provider.completedWorkoutsCount;
+    final totalVolume = provider.totalVolume;
+    final recentSessions = provider.completedWorkouts.take(3).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'WORKOUT TRACKER SUMMARY',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: StatCard(
+                title: 'Completed',
+                value: '$workoutsCount',
+                subtitle: 'workouts completed',
+                icon: Icons.check_circle_outline,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: StatCard(
+                title: 'Total Volume',
+                value: totalVolume > 1000
+                    ? '${(totalVolume / 1000).toStringAsFixed(1)}k'
+                    : '${totalVolume.toStringAsFixed(0)}',
+                subtitle: 'kg lifted',
+                icon: Icons.fitness_center,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'RECENT ACTIVITY',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (recentSessions.isEmpty)
+                Text(
+                  'No workouts completed yet. Start your first session to track your progress!',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                )
+              else
+                ...recentSessions.map((session) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              session.name,
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${session.durationMinutes} min • ${session.exercises.length} movements',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '${session.date.day}/${session.date.month}',
+                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+            ],
           ),
         ),
       ],

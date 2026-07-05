@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/widgets/primary_button.dart';
+import '../models/workout_session.dart';
+import '../providers/workout_provider.dart';
 import 'active_workout_screen.dart';
 import 'enhanced_workout_detail_screen.dart';
 import 'adjust_workout_plan_screen.dart';
 
 class WorkoutDetailScreen extends StatelessWidget {
-  const WorkoutDetailScreen({super.key});
+  final WorkoutTemplate? template;
+
+  const WorkoutDetailScreen({super.key, this.template});
 
   @override
   Widget build(BuildContext context) {
+    final activeTemplate = template ?? Provider.of<WorkoutProvider>(context, listen: false).templates.first;
+    
+    final warmUps = activeTemplate.exercises.where((e) => e.type == 'WARM UP').toList();
+    final mainBlock = activeTemplate.exercises.where((e) => e.type == 'MAIN BLOCK').toList();
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -20,7 +30,7 @@ class WorkoutDetailScreen extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Image.network(
-                    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1000&auto=format&fit=crop',
+                    activeTemplate.imageUrl,
                     fit: BoxFit.cover,
                     color: Colors.black.withOpacity(0.5),
                     colorBlendMode: BlendMode.darken,
@@ -44,7 +54,7 @@ class WorkoutDetailScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            'HYPERTROPHY',
+                            activeTemplate.category,
                             style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
                                   color: Theme.of(
@@ -55,7 +65,7 @@ class WorkoutDetailScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Heavy Back\n& Biceps',
+                          activeTemplate.name.replaceAll(' & ', '\n& '),
                           style: Theme.of(
                             context,
                           ).textTheme.displayMedium?.copyWith(height: 1.1),
@@ -75,11 +85,11 @@ class WorkoutDetailScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildOverviewItem(context, Icons.timer_outlined, '60 MIN'),
+                    _buildOverviewItem(context, Icons.timer_outlined, '${activeTemplate.estimatedDurationMinutes} MIN'),
                     _buildOverviewItem(
                       context,
                       Icons.fitness_center,
-                      '6 MOVES',
+                      '${activeTemplate.exercises.length} MOVES',
                     ),
                     _buildOverviewItem(
                       context,
@@ -90,60 +100,61 @@ class WorkoutDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 48),
 
-                Text(
-                  'WARM UP',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    letterSpacing: 2,
+                if (warmUps.isNotEmpty) ...[
+                  Text(
+                    'WARM UP',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      letterSpacing: 2,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                _buildExerciseItem(
-                  context,
-                  'A',
-                  'Lat Pulldown',
-                  '3 sets • 12-15 reps',
-                ),
-                _buildExerciseItem(
-                  context,
-                  'B',
-                  'Face Pulls',
-                  '2 sets • 15 reps',
-                ),
+                  const SizedBox(height: 16),
+                  ...warmUps.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final ex = entry.value;
+                    final letter = String.fromCharCode(65 + index); // A, B, C...
+                    return _buildExerciseItem(
+                      context,
+                      letter,
+                      ex.name,
+                      '${ex.defaultSets} sets • ${ex.defaultRepsRange} reps',
+                    );
+                  }),
+                  const SizedBox(height: 32),
+                ],
 
-                const SizedBox(height: 32),
-                Text(
-                  'MAIN BLOCK',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    letterSpacing: 2,
+                if (mainBlock.isNotEmpty) ...[
+                  Text(
+                    'MAIN BLOCK',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      letterSpacing: 2,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                _buildExerciseItem(
-                  context,
-                  'C1',
-                  'Barbell Row',
-                  '4 sets • 8-10 reps',
-                ),
-                _buildExerciseItem(
-                  context,
-                  'C2',
-                  'Dumbbell Curl',
-                  '4 sets • 10-12 reps',
-                ),
-                _buildExerciseItem(
-                  context,
-                  'D',
-                  'Seated Cable Row',
-                  '3 sets • 12 reps',
-                ),
+                  const SizedBox(height: 16),
+                  ...mainBlock.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final ex = entry.value;
+                    final letter = 'C${index + 1}';
+                    return _buildExerciseItem(
+                      context,
+                      letter,
+                      ex.name,
+                      '${ex.defaultSets} sets • ${ex.defaultRepsRange} reps',
+                    );
+                  }),
+                  const SizedBox(height: 40),
+                ],
 
-                const SizedBox(height: 40),
                 PrimaryButton(
                   text: 'START WORKOUT',
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveWorkoutScreen()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ActiveWorkoutScreen(template: activeTemplate),
+                      ),
+                    );
                   },
                 ),
                 const SizedBox(height: 40),
@@ -206,6 +217,25 @@ class WorkoutDetailScreen extends StatelessWidget {
               ],
             ),
           ),
+          IconButton(
+            icon: Icon(
+              Icons.play_circle_outline,
+              color: Theme.of(context).colorScheme.primary,
+              size: 28,
+            ),
+            tooltip: 'View Video & Details',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EnhancedWorkoutDetailScreen(
+                    exerciseName: title,
+                    type: letter,
+                  ),
+                ),
+              );
+            },
+          ),
           PopupMenuButton<String>(
             icon: Icon(
               Icons.more_horiz,
@@ -213,7 +243,15 @@ class WorkoutDetailScreen extends StatelessWidget {
             ),
             onSelected: (value) {
               if (value == 'video') {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const EnhancedWorkoutDetailScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EnhancedWorkoutDetailScreen(
+                      exerciseName: title,
+                      type: letter,
+                    ),
+                  ),
+                );
               } else if (value == 'adjust') {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AdjustWorkoutPlanScreen()));
               }

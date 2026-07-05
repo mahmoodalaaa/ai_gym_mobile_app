@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../core/widgets/stat_card.dart';
 import '../services/user_service.dart';
 import '../models/user_profile.dart';
+import '../models/workout_session.dart';
+import '../providers/workout_provider.dart';
 
 class PerformanceTrackingScreen extends StatefulWidget {
   const PerformanceTrackingScreen({super.key});
@@ -41,24 +44,18 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
     }
   }
 
-  double? get _bmi {
-    if (_profile?.weight == null || _profile?.height == null) return null;
-    
-    double w = _profile!.weight!;
+  double? getBmi(double weight) {
+    if (_profile?.height == null || weight == 0.0) return null;
     double h = _profile!.height!;
-
     if (!_isMetric) {
-      // Imperial BMI: 703 * lbs / in^2
-      return (703 * w) / (h * h);
+      return (703 * weight) / (h * h);
     } else {
-      // Metric BMI: kg / m^2
       double heightInMeters = h / 100;
-      return w / (heightInMeters * heightInMeters);
+      return weight / (heightInMeters * heightInMeters);
     }
   }
 
-  String get _bmiCategory {
-    final bmi = _bmi;
+  String getBmiCategory(double? bmi) {
     if (bmi == null) return '--';
     if (bmi < 18.5) return 'Underweight';
     if (bmi < 25) return 'Normal Weight';
@@ -66,8 +63,7 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
     return 'Obese';
   }
 
-  Color get _bmiColor {
-    final bmi = _bmi;
+  Color getBmiColor(double? bmi) {
     if (bmi == null) return Colors.grey;
     if (bmi < 18.5) return Colors.blue;
     if (bmi < 25) return Colors.green;
@@ -81,6 +77,8 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final workoutProvider = Provider.of<WorkoutProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Performance Insights'),
@@ -92,11 +90,13 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
           children: [
-            _buildWeeklyVolumeChart(),
+            _buildWeeklyVolumeChart(workoutProvider),
             const SizedBox(height: 32),
-            _buildHabitTracker(),
+            _buildHabitTracker(workoutProvider),
             const SizedBox(height: 48),
-            _buildBodyCompositionSection(),
+            _buildBodyCompositionSection(workoutProvider),
+            const SizedBox(height: 32),
+            _buildWeightHistorySection(workoutProvider),
             const SizedBox(height: 48),
             _buildNutritionSection(),
             const SizedBox(height: 40),
@@ -107,7 +107,16 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
     );
   }
 
-  Widget _buildWeeklyVolumeChart() {
+  Widget _buildWeeklyVolumeChart(WorkoutProvider provider) {
+    final volumeMap = provider.getPastSevenDaysVolume();
+    final weeklyLoad = volumeMap.values.fold(0.0, (a, b) => a + b);
+    
+    double maxVolume = volumeMap.values.fold(0.0, (a, b) => a > b ? a : b);
+    if (maxVolume == 0) maxVolume = 1.0;
+
+    final todayWeekday = DateTime.now().weekday;
+    final volumeUnit = _isMetric ? 'kg' : 'lbs';
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -131,7 +140,12 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text('42,500 kg', style: Theme.of(context).textTheme.displaySmall),
+                  Text(
+                    weeklyLoad > 1000
+                        ? '${(weeklyLoad / 1000).toStringAsFixed(1)}k $volumeUnit'
+                        : '${weeklyLoad.toStringAsFixed(0)} $volumeUnit',
+                    style: Theme.of(context).textTheme.displaySmall,
+                  ),
                 ],
               ),
               Container(
@@ -149,13 +163,13 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _buildChartBar('M', 0.45),
-              _buildChartBar('T', 0.7),
-              _buildChartBar('W', 0.2),
-              _buildChartBar('T', 0.85, isToday: true),
-              _buildChartBar('F', 0.5),
-              _buildChartBar('S', 0.3),
-              _buildChartBar('S', 0.1),
+              _buildChartBar('M', volumeMap[1]! / maxVolume, isToday: todayWeekday == 1),
+              _buildChartBar('T', volumeMap[2]! / maxVolume, isToday: todayWeekday == 2),
+              _buildChartBar('W', volumeMap[3]! / maxVolume, isToday: todayWeekday == 3),
+              _buildChartBar('T', volumeMap[4]! / maxVolume, isToday: todayWeekday == 4),
+              _buildChartBar('F', volumeMap[5]! / maxVolume, isToday: todayWeekday == 5),
+              _buildChartBar('S', volumeMap[6]! / maxVolume, isToday: todayWeekday == 6),
+              _buildChartBar('S', volumeMap[7]! / maxVolume, isToday: todayWeekday == 7),
             ],
           ),
         ],
@@ -164,11 +178,12 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
   }
 
   Widget _buildChartBar(String day, double heightFactor, {bool isToday = false}) {
+    final double adjustedHeightFactor = heightFactor < 0.05 ? 0.05 : heightFactor;
     return Column(
       children: [
         Container(
           width: 24,
-          height: 120 * heightFactor,
+          height: 120 * adjustedHeightFactor,
           decoration: BoxDecoration(
             color: isToday
                 ? Theme.of(context).colorScheme.primary
@@ -197,7 +212,9 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
     );
   }
 
-  Widget _buildHabitTracker() {
+  Widget _buildHabitTracker(WorkoutProvider provider) {
+    final trainedDays = provider.getWeeklyTrainedDays();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -218,13 +235,13 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildDayCircle('M', true),
-              _buildDayCircle('T', true),
-              _buildDayCircle('W', false),
-              _buildDayCircle('T', true),
-              _buildDayCircle('F', false),
-              _buildDayCircle('S', false),
-              _buildDayCircle('S', false),
+              _buildDayCircle('M', trainedDays.contains(1)),
+              _buildDayCircle('T', trainedDays.contains(2)),
+              _buildDayCircle('W', trainedDays.contains(3)),
+              _buildDayCircle('T', trainedDays.contains(4)),
+              _buildDayCircle('F', trainedDays.contains(5)),
+              _buildDayCircle('S', trainedDays.contains(6)),
+              _buildDayCircle('S', trainedDays.contains(7)),
             ],
           ),
         ),
@@ -267,10 +284,15 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
     );
   }
 
-  Widget _buildBodyCompositionSection() {
+  Widget _buildBodyCompositionSection(WorkoutProvider provider) {
     final weightUnit = _isMetric ? 'kg' : 'lbs';
     final heightUnit = _isMetric ? 'cm' : 'in';
-    final bmiVal = _bmi?.toStringAsFixed(1) ?? '--';
+    
+    final latestWeight = provider.weightHistory.isNotEmpty ? provider.weightHistory.first.weight : (_profile?.weight ?? 0.0);
+    final bmi = getBmi(latestWeight);
+    final bmiVal = bmi?.toStringAsFixed(1) ?? '--';
+    final bmiCategory = getBmiCategory(bmi);
+    final bmiColor = getBmiColor(bmi);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,7 +326,7 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildMetricInfo('Weight', '${_profile?.weight ?? '--'} $weightUnit'),
+                  _buildMetricInfo('Weight', '${latestWeight > 0 ? latestWeight.toStringAsFixed(1) : '--'} $weightUnit'),
                   Container(
                     width: 2,
                     height: 40,
@@ -316,23 +338,97 @@ class _PerformanceTrackingScreenState extends State<PerformanceTrackingScreen> {
                     height: 40,
                     color: Theme.of(context).colorScheme.outlineVariant,
                   ),
-                  _buildMetricInfo('BMI', bmiVal, valueColor: _bmiColor),
+                  _buildMetricInfo('BMI', bmiVal, valueColor: bmiColor),
                 ],
               ),
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Icon(Icons.info_outline, size: 16, color: _bmiColor),
+                  Icon(Icons.info_outline, size: 16, color: bmiColor),
                   const SizedBox(width: 8),
                   Text(
-                    'Category: $_bmiCategory',
+                    'Category: $bmiCategory',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: _bmiColor,
+                      color: bmiColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeightHistorySection(WorkoutProvider provider) {
+    final weightUnit = _isMetric ? 'kg' : 'lbs';
+    final logs = provider.weightHistory;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'BODY WEIGHT LOGS',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'LOG HISTORY',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (logs.isEmpty)
+                Text(
+                  'No weight logs recorded yet. Tap on your weight card on the Dashboard to log your first weight!',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                )
+              else
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: logs.length > 5 ? 5 : logs.length,
+                  separatorBuilder: (context, index) => const Divider(height: 16),
+                  itemBuilder: (context, index) {
+                    final log = logs[index];
+                    final dateStr = '${log.date.day}/${log.date.month}/${log.date.year}';
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          dateStr,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        Text(
+                          '${log.weight.toStringAsFixed(1)} $weightUnit',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
             ],
           ),
         ),
